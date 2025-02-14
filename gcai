@@ -1,0 +1,10 @@
+#!/bin/bash
+
+SCRIPT_DIR="/usr/local/lib/git-ai-commit"
+CURRENT_DIR="$(pwd)"
+(cd "$SCRIPT_DIR" && PYTHONPATH="$SCRIPT_DIR" poetry run python -c "import os; os.chdir('$CURRENT_DIR'); import ai_commit_message; ai_commit_message.main()" --commit)
+STATUS=$?
+if [ $STATUS -eq 0 ]; then
+    git --no-pager log -1 --pretty=format:"%h"
+fi
+exit $STATUS 
