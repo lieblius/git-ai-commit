@@ -58,41 +58,61 @@ def edit_message(initial_message: str) -> str:
         os.unlink(tf_name)  # Clean up the temporary file
 
 
-def generate_commit_message(diff: str) -> str:
-    """Generate a conventional commit message using Claude."""
+def generate_commit_message(diff: str, conventional: bool = False) -> str:
+    """Generate a commit message using Claude.
+
+    Args:
+        diff: The git diff content
+        conventional: Whether to use conventional commit format
+    """
     if not diff:
         return ""
 
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    prompt = (
-        "Generate a single-line conventional commit message for these changes:\n\n"
-        f"```diff\n{diff}\n```\n\n"
-        "Rules:\n"
-        "1. Message must be in this exact format: <type>: <description>\n"
-        "2. Type must be one of:\n"
-        "   - fix: A bug fix. Correlates with PATCH in SemVer\n"
-        "   - feat: A new feature. Correlates with MINOR in SemVer\n"
-        "   - docs: Documentation only changes\n"
-        "   - style: Changes that do not affect the meaning of the code\n"
-        "   - refactor: A code change that neither fixes a bug nor adds a feature\n"
-        "   - perf: A code change that improves performance\n"
-        "   - test: Adding missing or correcting existing tests\n"
-        "   - build: Changes that affect the build system or external dependencies\n"
-        "   - ci: Changes to CI configuration files and scripts\n"
-        "3. Description must be:\n"
-        "   - Written in lower case\n"
-        "   - Imperative, present tense (e.g., 'add' not 'added')\n"
-        "   - No period at the end\n"
-        "   - Under 72 characters total\n"
-        "   - A short and imperative summary of the code changes\n"
-    )
+    if conventional:
+        prompt = (
+            "Generate a single-line conventional commit message for these changes:\n\n"
+            f"```diff\n{diff}\n```\n\n"
+            "Rules:\n"
+            "1. Message must be in this exact format: <type>: <description>\n"
+            "2. Type must be one of:\n"
+            "   - fix: A bug fix. Correlates with PATCH in SemVer\n"
+            "   - feat: A new feature. Correlates with MINOR in SemVer\n"
+            "   - docs: Documentation only changes\n"
+            "   - style: Changes that do not affect the meaning of the code\n"
+            "   - refactor: A code change that neither fixes a bug nor adds a feature\n"
+            "   - perf: A code change that improves performance\n"
+            "   - test: Adding missing or correcting existing tests\n"
+            "   - build: Changes that affect the build system or external dependencies\n"
+            "   - ci: Changes to CI configuration files and scripts\n"
+            "3. Description must be:\n"
+            "   - Written in lower case\n"
+            "   - Imperative, present tense (e.g., 'add' not 'added')\n"
+            "   - No period at the end\n"
+            "   - Under 72 characters total\n"
+            "   - A short and imperative summary of the code changes\n"
+        )
+        system_prompt = "You are a commit message generator that creates conventional commit messages exactly matching Commitizen's format."
+    else:
+        prompt = (
+            "Generate a short, clear commit message for these changes:\n\n"
+            f"```diff\n{diff}\n```\n\n"
+            "Rules:\n"
+            "1. Message must be a single line\n"
+            "2. Description must be:\n"
+            "   - Imperative, present tense (e.g., 'Add' not 'Added')\n"
+            "   - No period at the end\n"
+            "   - Under 72 characters total\n"
+            "   - A clear summary of the code changes\n"
+        )
+        system_prompt = "You are a commit message generator that creates concise, descriptive git commit messages."
 
     message = client.messages.create(
         model="claude-3-5-sonnet-20241022",
         max_tokens=100,
         temperature=0,
-        system="You are a commit message generator that creates conventional commit messages exactly matching Commitizen's format.",
+        system=system_prompt,
         messages=[{"role": "user", "content": prompt}],
     )
 
@@ -107,11 +127,17 @@ def main() -> None:
     parser.add_argument(
         "--commit", action="store_true", help="Create the commit after confirmation"
     )
+    parser.add_argument(
+        "-c",
+        "--conventional",
+        action="store_true",
+        help="Use conventional commit format (type: description)",
+    )
     args = parser.parse_args()
 
     try:
         diff = get_git_diff(args.all)
-        commit_msg = generate_commit_message(diff)
+        commit_msg = generate_commit_message(diff, args.conventional)
         if not commit_msg:
             sys.exit(1)  # No changes to commit
 
