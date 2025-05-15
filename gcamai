@@ -15,7 +15,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SCRIPT_DIR="/usr/local/lib/git-ai-commit"
+# Get the real path of the script, resolving symlinks
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
 CURRENT_DIR="$(pwd)"
 
 COMMAND="import os; os.chdir('$CURRENT_DIR'); import ai_commit_message; ai_commit_message.main()"
