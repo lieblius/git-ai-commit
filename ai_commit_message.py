@@ -99,14 +99,21 @@ def generate_commit_message(diff: str, conventional: bool = False) -> str:
             "Generate a short, clear commit message for these changes:\n\n"
             f"```diff\n{diff}\n```\n\n"
             "Rules:\n"
-            "1. Message must be a single line\n"
-            "2. Description must be:\n"
-            "   - Imperative, present tense (e.g., 'Add' not 'Added')\n"
-            "   - No period at the end\n"
-            "   - Under 72 characters total\n"
-            "   - A clear summary of the code changes\n"
+            "1. Return ONLY the message text with no formatting, quotes, or backticks\n"
+            "2. DO NOT use type prefixes (like 'fix:', 'feat:', etc.) - just write a plain message\n"
+            "3. Start with a capitalized verb in imperative form (e.g., 'Add' not 'Added' or 'Adds')\n"
+            "4. No period at the end\n"
+            "5. Under 72 characters total\n"
+            "6. Examples of good messages:\n"
+            "   - Update user authentication logic\n"
+            "   - Add support for dark mode\n"
+            "   - Fix database connection timeout\n"
+            "   NOT:\n"
+            "   - `Fix database timeout` (no backticks!)\n"
+            "   - fix: update user auth (no type prefixes!)\n"
+            "   - Updated user authentication (use imperative!)\n"
         )
-        system_prompt = "You are a commit message generator that creates concise, descriptive git commit messages."
+        system_prompt = "You are a commit message generator. Output ONLY the raw message text without any formatting, quotes, or backticks. For regular commits, create concise messages without type prefixes. Start with a capital verb in imperative mood."
 
     message = client.messages.create(
         model="claude-3-5-sonnet-20241022",
