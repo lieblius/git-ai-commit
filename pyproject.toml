@@ -1,18 +1,23 @@
 [project]
 name = "git-ai-commit"
-version = "0.1.0"
-description = ""
+version = "0.0.1"
+description = "AI-powered git commit message generator using Claude"
 authors = [
-    {name = "Your Name",email = "you@example.com"}
+    {name = "Kyle Liebler", email = "kyle@liebler.xyz"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "anthropic (>=0.45.2,<0.46.0)"
 ]
+license = {text = "MIT"}
+
+[project.scripts]
+gcai = "git_ai_commit.cli:run_staged"
+gcamai = "git_ai_commit.cli:run_all"
 
 [tool.poetry]
-package-mode = false
+packages = [{include = "git_ai_commit"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

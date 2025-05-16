@@ -6,7 +6,6 @@ import termios
 import subprocess
 import tempfile
 from anthropic import Anthropic
-from argparse import ArgumentParser
 
 
 def getch() -> str:
@@ -124,62 +123,3 @@ def generate_commit_message(diff: str, conventional: bool = False) -> str:
     )
 
     return str(message.content[0].text).strip()
-
-
-def main() -> None:
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--all", action="store_true", help="Include all changes (not just staged)"
-    )
-    parser.add_argument(
-        "--commit", action="store_true", help="Create the commit after confirmation"
-    )
-    parser.add_argument(
-        "-c",
-        "--conventional",
-        action="store_true",
-        help="Use conventional commit format (type: description)",
-    )
-    args = parser.parse_args()
-
-    try:
-        diff = get_git_diff(args.all)
-        commit_msg = generate_commit_message(diff, args.conventional)
-        if not commit_msg:
-            sys.exit(1)  # No changes to commit
-
-        print(commit_msg, end="", flush=True)
-
-        if args.commit:
-            key = getch()  # Get single keypress
-            print()  # Add newline after keypress
-
-            if key.lower() == "e":
-                commit_msg = edit_message(commit_msg)
-            elif key != "\r":  # If not Enter, exit with error
-                sys.exit(1)
-
-            # Only reach here if 'e' or Enter was pressed
-            cmd = ["git", "commit", "-m", commit_msg]
-            if args.all:
-                cmd.insert(2, "-a")
-            # Redirect stdout and stderr to devnull to suppress git's output
-            with open(os.devnull, "w") as devnull:
-                try:
-                    subprocess.run(
-                        cmd, check=True, cwd=os.getcwd(), stdout=devnull, stderr=devnull
-                    )
-                    sys.exit(0)  # Only exit with 0 if commit succeeded
-                except subprocess.CalledProcessError:
-                    sys.exit(1)  # Exit with error if commit failed
-
-    except KeyboardInterrupt:
-        print()  # Add newline after ^C
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
