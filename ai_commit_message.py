@@ -116,7 +116,7 @@ def generate_commit_message(diff: str, conventional: bool = False) -> str:
         system_prompt = "You are a commit message generator. Output ONLY the raw message text without any formatting, quotes, or backticks. For regular commits, create concise messages without type prefixes. Start with a capital verb in imperative mood."
 
     message = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-sonnet-4-5-20250929",
         max_tokens=100,
         temperature=0,
         system=system_prompt,
