@@ -5,8 +5,19 @@ import tty
 import termios
 import subprocess
 import tempfile
-from anthropic import Anthropic
+import json
+from pathlib import Path
+from anthropic import Anthropic, AnthropicBedrock
 from argparse import ArgumentParser
+
+
+def load_claude_settings() -> dict:
+    """Load settings from ~/.claude/settings.json."""
+    settings_path = Path.home() / ".claude" / "settings.json"
+    if settings_path.exists():
+        with open(settings_path, "r") as f:
+            return json.load(f)
+    return {}
 
 
 def getch() -> str:
@@ -68,7 +79,23 @@ def generate_commit_message(diff: str, conventional: bool = False) -> str:
     if not diff:
         return ""
 
-    client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    # Load settings from ~/.claude/settings.json to check if we should use Bedrock
+    settings = load_claude_settings()
+    env_settings = settings.get("env", {})
+    use_bedrock = env_settings.get("CLAUDE_CODE_USE_BEDROCK") == "1"
+
+    if use_bedrock:
+        # Use AWS Bedrock with settings from ~/.claude/settings.json
+        aws_region = env_settings.get("AWS_REGION", "us-east-2")
+        # AnthropicBedrock will use AWS credential chain (env vars, ~/.aws/credentials, etc.)
+        client = AnthropicBedrock(aws_region=aws_region)
+        model = env_settings.get(
+            "ANTHROPIC_MODEL", "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        )
+    else:
+        # Use direct Anthropic API - existing functionality unchanged
+        client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        model = "claude-sonnet-4-5-20250929"
 
     if conventional:
         prompt = (
@@ -116,7 +143,7 @@ def generate_commit_message(diff: str, conventional: bool = False) -> str:
         system_prompt = "You are a commit message generator. Output ONLY the raw message text without any formatting, quotes, or backticks. For regular commits, create concise messages without type prefixes. Start with a capital verb in imperative mood."
 
     message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model=model,
         max_tokens=100,
         temperature=0,
         system=system_prompt,
